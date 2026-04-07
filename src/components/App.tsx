@@ -1,15 +1,18 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Difficulty } from "../types";
 import { GameStateManager } from "../game/state";
 import { Menu } from "./Menu";
 import { DifficultySelect } from "./DifficultySelect";
 import { GameContainer } from "./GameContainer";
+import { HUD } from "./HUD";
+import { Toast } from "./Toast";
 
 type Screen = "menu" | "difficulty" | "game" | "gameover";
 
 function App() {
   const [screen, setScreen] = useState<Screen>("menu");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [toastVisible, setToastVisible] = useState(false);
   const stateManager = useRef(new GameStateManager()).current;
 
   const handleSelectDifficulty = (d: Difficulty) => {
@@ -21,6 +24,21 @@ function App() {
   const handleGameOver = useCallback(() => {
     setScreen("gameover");
   }, []);
+
+  const handlePause = () => {
+    const state = stateManager.getState();
+    if (state.status === "playing") {
+      stateManager.setStatus("paused");
+    } else if (state.status === "paused") {
+      stateManager.setStatus("playing");
+    }
+  };
+
+  useEffect(() => {
+    const handleAutoShuffle = () => setToastVisible(true);
+    stateManager.on("autoShuffle", handleAutoShuffle);
+    return () => stateManager.off("autoShuffle", handleAutoShuffle);
+  }, [stateManager]);
 
   return (
     <div style={{ textAlign: "center" }}>
@@ -34,15 +52,23 @@ function App() {
         />
       )}
       {screen === "game" && (
-        <GameContainer
-          difficulty={difficulty}
-          stateManager={stateManager}
-          onGameOver={handleGameOver}
-        />
+        <div>
+          <HUD stateManager={stateManager} onPause={handlePause} />
+          <GameContainer
+            difficulty={difficulty}
+            stateManager={stateManager}
+            onGameOver={handleGameOver}
+          />
+        </div>
       )}
       {screen === "gameover" && (
         <div>Game Over placeholder</div>
       )}
+      <Toast
+        message="No moves available — board shuffled!"
+        visible={toastVisible}
+        onHide={() => setToastVisible(false)}
+      />
     </div>
   );
 }
