@@ -65,14 +65,14 @@ export function HUD({ stateManager, onPause }: HUDProps) {
         onClick={onPause}
         style={{
           padding: "6px 16px",
-          background: "#0f3460",
+          background: state.status === "paused" ? "#e94560" : "#0f3460",
           color: "#fff",
           border: "none",
           borderRadius: "4px",
           cursor: "pointer",
         }}
       >
-        ⏸ Pause
+        {state.status === "paused" ? "▶ Resume" : "⏸ Pause"}
       </button>
     </div>
   );
