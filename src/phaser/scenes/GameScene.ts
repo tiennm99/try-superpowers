@@ -41,6 +41,15 @@ export class GameScene extends Phaser.Scene {
     this.shuffleHandler = () => this.handleShuffle();
     this.stateManager.on("hint", this.hintHandler);
     this.stateManager.on("shuffle", this.shuffleHandler);
+
+    // Clean up listeners on scene shutdown (called by game.destroy)
+    this.events.on("shutdown", () => {
+      if (this.timerEvent) {
+        this.timerEvent.destroy();
+      }
+      this.stateManager.off("hint", this.hintHandler);
+      this.stateManager.off("shuffle", this.shuffleHandler);
+    });
   }
 
   private renderBoard(): void {
@@ -313,9 +322,10 @@ export class GameScene extends Phaser.Scene {
     this.renderBoard();
   }
 
-  destroy(): void {
+  shutdown(): void {
     if (this.timerEvent) {
       this.timerEvent.destroy();
+      this.timerEvent = null;
     }
     if (this.stateManager) {
       this.stateManager.off("hint", this.hintHandler);
