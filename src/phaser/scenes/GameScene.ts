@@ -19,6 +19,8 @@ export class GameScene extends Phaser.Scene {
   private lineGraphics!: Phaser.GameObjects.Graphics;
   private isProcessing = false;
   private timerEvent: Phaser.Time.TimerEvent | null = null;
+  private hintHandler!: () => void;
+  private shuffleHandler!: () => void;
 
   constructor() {
     super({ key: "GameScene" });
@@ -35,8 +37,10 @@ export class GameScene extends Phaser.Scene {
     this.startTimer();
 
     // Listen for external actions (hint, shuffle)
-    this.stateManager.on("hint", () => this.handleHint());
-    this.stateManager.on("shuffle", () => this.handleShuffle());
+    this.hintHandler = () => this.handleHint();
+    this.shuffleHandler = () => this.handleShuffle();
+    this.stateManager.on("hint", this.hintHandler);
+    this.stateManager.on("shuffle", this.shuffleHandler);
   }
 
   private renderBoard(): void {
@@ -106,6 +110,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onTileClick(pos: Point): void {
+    if (this.stateManager.getState().status !== "playing") return;
     const tile = this.board[pos.row][pos.col];
     if (!tile) return;
 
@@ -302,20 +307,19 @@ export class GameScene extends Phaser.Scene {
 
   private performShuffle(): void {
     this.clearSelection();
-    this.board = shuffleBoard(this.board);
+    do {
+      this.board = shuffleBoard(this.board);
+    } while (getRemainingTiles(this.board).length > 0 && !hasAnyValidMove(this.board));
     this.renderBoard();
-
-    if (
-      getRemainingTiles(this.board).length > 0 &&
-      !hasAnyValidMove(this.board)
-    ) {
-      this.performShuffle();
-    }
   }
 
   destroy(): void {
     if (this.timerEvent) {
       this.timerEvent.destroy();
+    }
+    if (this.stateManager) {
+      this.stateManager.off("hint", this.hintHandler);
+      this.stateManager.off("shuffle", this.shuffleHandler);
     }
   }
 }

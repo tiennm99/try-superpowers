@@ -1,6 +1,7 @@
 import { Board, Difficulty, TileData, Point } from "../types";
 import { DIFFICULTY_CONFIGS } from "./constants";
 import { getEmojisForDifficulty } from "./emoji";
+import { hasAnyValidMove } from "./pathfinder";
 
 let nextTileId = 0;
 
@@ -32,6 +33,21 @@ export function createBoard(difficulty: Difficulty): Board {
       row.push(tiles[idx++]);
     }
     board.push(row);
+  }
+
+  // Validate at least one valid move exists; reshuffle if not
+  while (!hasAnyValidMove(board)) {
+    const allTiles = board.flat().filter((t): t is TileData => t !== null);
+    for (let i = allTiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allTiles[i], allTiles[j]] = [allTiles[j], allTiles[i]];
+    }
+    let idx2 = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        board[r][c] = allTiles[idx2++];
+      }
+    }
   }
 
   return board;
