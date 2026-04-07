@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Difficulty } from "../types";
 import { GameStateManager } from "../game/state";
 import { Menu } from "./Menu";
 import { DifficultySelect } from "./DifficultySelect";
+import { GameContainer } from "./GameContainer";
 
 type Screen = "menu" | "difficulty" | "game" | "gameover";
 
@@ -17,6 +18,10 @@ function App() {
     setScreen("game");
   };
 
+  const handleGameOver = useCallback(() => {
+    setScreen("gameover");
+  }, []);
+
   return (
     <div style={{ textAlign: "center" }}>
       {screen === "menu" && (
@@ -29,7 +34,11 @@ function App() {
         />
       )}
       {screen === "game" && (
-        <div>Game placeholder — {difficulty}</div>
+        <GameContainer
+          difficulty={difficulty}
+          stateManager={stateManager}
+          onGameOver={handleGameOver}
+        />
       )}
       {screen === "gameover" && (
         <div>Game Over placeholder</div>
