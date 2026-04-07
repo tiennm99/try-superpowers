@@ -21,6 +21,7 @@ export class GameScene extends Phaser.Scene {
   private timerEvent: Phaser.Time.TimerEvent | null = null;
   private hintHandler!: () => void;
   private shuffleHandler!: () => void;
+  private solveInterval: number | null = null;
 
   constructor() {
     super({ key: "GameScene" });
@@ -49,7 +50,11 @@ export class GameScene extends Phaser.Scene {
       }
       this.stateManager.off("hint", this.hintHandler);
       this.stateManager.off("shuffle", this.shuffleHandler);
+      this.stopSolve();
     });
+
+    // Expose solve() on window for console use
+    (window as unknown as Record<string, unknown>).solve = () => this.startSolve();
   }
 
   private renderBoard(): void {
@@ -320,6 +325,56 @@ export class GameScene extends Phaser.Scene {
       this.board = shuffleBoard(this.board);
     } while (getRemainingTiles(this.board).length > 0 && !hasAnyValidMove(this.board));
     this.renderBoard();
+  }
+
+  private startSolve(): void {
+    if (this.solveInterval !== null) {
+      this.stopSolve();
+      console.log("Auto-solve stopped.");
+      return;
+    }
+    console.log("Auto-solve started. Call solve() again to stop.");
+    this.solveOneMove();
+    this.solveInterval = window.setInterval(() => {
+      if (this.isProcessing) return;
+      const state = this.stateManager.getState();
+      if (state.status !== "playing") {
+        this.stopSolve();
+        return;
+      }
+      this.solveOneMove();
+    }, 1000);
+  }
+
+  private stopSolve(): void {
+    if (this.solveInterval !== null) {
+      clearInterval(this.solveInterval);
+      this.solveInterval = null;
+    }
+  }
+
+  private solveOneMove(): void {
+    if (this.isProcessing) return;
+    const remaining = getRemainingTiles(this.board);
+    for (let i = 0; i < remaining.length; i++) {
+      for (let j = i + 1; j < remaining.length; j++) {
+        if (remaining[i].tile.emoji === remaining[j].tile.emoji) {
+          const path = findPath(this.board, remaining[i].pos, remaining[j].pos);
+          if (path) {
+            this.clearSelection();
+            this.selectedTile = remaining[i].pos;
+            this.highlightTile(remaining[i].pos);
+            this.isProcessing = true;
+            this.handleMatch(remaining[i].pos, remaining[j].pos, path);
+            return;
+          }
+        }
+      }
+    }
+    // No valid move found — shuffle
+    if (remaining.length > 0) {
+      this.autoShuffle();
+    }
   }
 
   shutdown(): void {
