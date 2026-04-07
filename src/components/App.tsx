@@ -6,6 +6,7 @@ import { DifficultySelect } from "./DifficultySelect";
 import { GameContainer } from "./GameContainer";
 import { HUD } from "./HUD";
 import { Toast } from "./Toast";
+import { GameOver } from "./GameOver";
 
 type Screen = "menu" | "difficulty" | "game" | "gameover";
 
@@ -24,6 +25,11 @@ function App() {
   const handleGameOver = useCallback(() => {
     setScreen("gameover");
   }, []);
+
+  const handlePlayAgain = () => {
+    stateManager.startGame(difficulty);
+    setScreen("game");
+  };
 
   const handlePause = () => {
     const state = stateManager.getState();
@@ -62,7 +68,12 @@ function App() {
         </div>
       )}
       {screen === "gameover" && (
-        <div>Game Over placeholder</div>
+        <GameOver
+          stateManager={stateManager}
+          difficulty={difficulty}
+          onPlayAgain={handlePlayAgain}
+          onMenu={() => setScreen("menu")}
+        />
       )}
       <Toast
         message="No moves available — board shuffled!"
